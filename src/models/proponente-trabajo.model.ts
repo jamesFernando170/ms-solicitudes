@@ -1,11 +1,22 @@
-import {Entity, model, property, belongsTo, hasMany} from '@loopback/repository';
-import {TipoVinculacion} from './tipo-vinculacion.model';
-import {Departamento} from './departamento.model';
+import {belongsTo, Entity, hasMany, model, property} from '@loopback/repository';
 import {DepartamentoProponenteTrabajo} from './departamento-proponente-trabajo.model';
-import {Solicitud} from './solicitud.model';
+import {Departamento} from './departamento.model';
 import {SolicitudProponente} from './solicitud-proponente.model';
+import {Solicitud} from './solicitud.model';
+import {TipoVinculacion} from './tipo-vinculacion.model';
 
-@model()
+@model({
+  settings: {
+    foreignKeys: {
+      fk_proponenteTrabajo_tipoVinculacionId: {
+        name: 'fk_proponenteTrabajo_tipoVinculacionId',
+        entity: 'TipoVinculacion',
+        entityKey: 'id',
+        foreignKey: 'idTipoVinculacion',
+      },
+    },
+  },
+})
 export class ProponenteTrabajo extends Entity {
   @property({
     type: 'number',

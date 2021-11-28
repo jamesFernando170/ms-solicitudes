@@ -1,110 +1,263 @@
+import {service} from '@loopback/core';
 import {
   Count,
   CountSchema,
   Filter,
+  FilterExcludingWhere,
   repository,
-  Where,
+  Where
 } from '@loopback/repository';
-  import {
-  del,
-  get,
-  getModelSchemaRef,
-  getWhereSchemaFor,
-  param,
-  patch,
-  post,
-  requestBody,
-} from '@loopback/rest';
 import {
-ProponenteTrabajo,
-SolicitudProponente,
-Solicitud,
-} from '../models';
-import {ProponenteTrabajoRepository} from '../repositories';
+  del, get,
+  getModelSchemaRef, param, patch, post, put, requestBody,
+  response
+} from '@loopback/rest';
+import {Keys} from '../config/Keys';
+import {Solicitud, SolicitudProponente} from '../models';
+import {ArregloGenerico} from '../models/arreglo-generico.model';
+import {NotificacionCorreo} from '../models/notificacion-correo.model';
+import {ProponenteTrabajoRepository, SolicitudProponenteRepository, SolicitudRepository} from '../repositories';
+import {NotificacionesService} from '../services';
+
+/*
+Este controlador "SolicitudProponeneteController" es el resultado de la relacion de los modelos Solicitud y Proponente, donde podremos realizar
+operaciones CRUD, donde podremos agregar, actualizar, eliminar, etc, Proponente-trabajo-departamento
+*/
 
 export class ProponenteTrabajoSolicitudController {
   constructor(
-    @repository(ProponenteTrabajoRepository) protected proponenteTrabajoRepository: ProponenteTrabajoRepository,
+    @repository(SolicitudProponenteRepository)
+    public solicitudProponenteRepository: SolicitudProponenteRepository,
+    @repository(ProponenteTrabajoRepository)
+    public proponenteTrabajoRepository: ProponenteTrabajoRepository,
+    @service(NotificacionesService)
+    public servicioNotificaciones: NotificacionesService,
+    @repository(SolicitudRepository)
+    public SolicitudRepository: SolicitudRepository
   ) { }
 
-  @get('/proponente-trabajos/{id}/solicituds', {
-    responses: {
-      '200': {
-        description: 'Array of ProponenteTrabajo has many Solicitud through SolicitudProponente',
-        content: {
-          'application/json': {
-            schema: {type: 'array', items: getModelSchemaRef(Solicitud)},
-          },
+  /*
+  En el momento en que un Proponente va a registrar una solicitud, a este se le enviara un correo electronico diciendole que su solicitud acaba de ser registrada y haciendole
+  un resumen de dicha solicitud, todo esto mediante el microservicio de notificaciones
+  */
+  @post('/solicitud-proponentes')
+  @response(200, {
+    description: 'SolicitudProponente model instance',
+    content: {'application/json': {schema: getModelSchemaRef(SolicitudProponente)}},
+  })
+  async create(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: getModelSchemaRef(SolicitudProponente, {
+            title: 'NewSolicitudProponente',
+            exclude: ['id'],
+          }),
+        },
+      },
+    })
+    solicitudProponente: Omit<SolicitudProponente, 'id'>,
+  ): Promise<SolicitudProponente> {
+    /*
+    Importamos los repositorios tanto de proponenteTrabajo como de solicitud, para asi filtrarlos por ID y obtener respectivamente su informacion basica y poder acceder a cada uno
+    de ellas, sirviendonos para enviarle un resumen de que la solicitud fue registrada al proponente que registro una solicitud y posteriormente, a traves del microservicio de notificaciones
+    le enviamos un mensaje
+    */
+    let solicitudCreada = await this.solicitudProponenteRepository.create(solicitudProponente);
+    const proponenteTrabajo = await this.proponenteTrabajoRepository.findById(solicitudProponente.proponenteTrabajoId);
+    const solicitud = await this.SolicitudRepository.findById(solicitudProponente.solicitudId);
+
+    if (solicitudCreada) {
+      let datos = new NotificacionCorreo();
+      datos.destinatario = proponenteTrabajo.correo;
+      datos.asunto = Keys.asuntoSolicitud;
+      datos.mensaje = `Hola ${proponenteTrabajo.primerNombre} ${proponenteTrabajo.segundoApellido} su solicitud fue registrada con exito:<br/> Nombre de trabajo: ${solicitud.nombreTrabajo}<br/>fecha de radicacion: ${solicitud.fecha}`;
+      this.servicioNotificaciones.EnviarCorreo(datos);
+    }
+    return solicitudCreada;
+  }
+
+  @get('/solicitud-proponentes/count')
+  @response(200, {
+    description: 'SolicitudProponente model count',
+    content: {'application/json': {schema: CountSchema}},
+  })
+  async count(
+    @param.where(SolicitudProponente) where?: Where<SolicitudProponente>,
+  ): Promise<Count> {
+    return this.solicitudProponenteRepository.count(where);
+  }
+
+  @get('/solicitud-proponentes')
+  @response(200, {
+    description: 'Array of SolicitudProponente model instances',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'array',
+          items: getModelSchemaRef(SolicitudProponente, {includeRelations: true}),
         },
       },
     },
   })
   async find(
-    @param.path.number('id') id: number,
-    @param.query.object('filter') filter?: Filter<Solicitud>,
-  ): Promise<Solicitud[]> {
-    return this.proponenteTrabajoRepository.solicituds(id).find(filter);
+    @param.filter(SolicitudProponente) filter?: Filter<SolicitudProponente>,
+  ): Promise<SolicitudProponente[]> {
+    return this.solicitudProponenteRepository.find(filter);
   }
 
-  @post('/proponente-trabajos/{id}/solicituds', {
-    responses: {
-      '200': {
-        description: 'create a Solicitud model instance',
-        content: {'application/json': {schema: getModelSchemaRef(Solicitud)}},
-      },
-    },
+  @patch('/solicitud-proponentes')
+  @response(200, {
+    description: 'SolicitudProponente PATCH success count',
+    content: {'application/json': {schema: CountSchema}},
   })
-  async create(
-    @param.path.number('id') id: typeof ProponenteTrabajo.prototype.id,
+  async updateAll(
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Solicitud, {
-            title: 'NewSolicitudInProponenteTrabajo',
+          schema: getModelSchemaRef(SolicitudProponente, {partial: true}),
+        },
+      },
+    })
+    solicitudProponente: SolicitudProponente,
+    @param.where(SolicitudProponente) where?: Where<SolicitudProponente>,
+  ): Promise<Count> {
+    return this.solicitudProponenteRepository.updateAll(solicitudProponente, where);
+  }
+
+  @get('/solicitud-proponentes/{id}')
+  @response(200, {
+    description: 'SolicitudProponente model instance',
+    content: {
+      'application/json': {
+        schema: getModelSchemaRef(SolicitudProponente, {includeRelations: true}),
+      },
+    },
+  })
+  async findById(
+    @param.path.number('id') id: number,
+    @param.filter(SolicitudProponente, {exclude: 'where'}) filter?: FilterExcludingWhere<SolicitudProponente>
+  ): Promise<SolicitudProponente> {
+    return this.solicitudProponenteRepository.findById(id, filter);
+  }
+
+  @patch('/solicitud-proponentes/{id}')
+  @response(204, {
+    description: 'SolicitudProponente PATCH success',
+  })
+  async updateById(
+    @param.path.number('id') id: number,
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: getModelSchemaRef(SolicitudProponente, {partial: true}),
+        },
+      },
+    })
+    solicitudProponente: SolicitudProponente,
+  ): Promise<void> {
+    await this.solicitudProponenteRepository.updateById(id, solicitudProponente);
+  }
+
+  @put('/solicitud-proponentes/{id}')
+  @response(204, {
+    description: 'SolicitudProponente PUT success',
+  })
+  async replaceById(
+    @param.path.number('id') id: number,
+    @requestBody() solicitudProponente: SolicitudProponente,
+  ): Promise<void> {
+    await this.solicitudProponenteRepository.replaceById(id, solicitudProponente);
+  }
+
+  @del('/solicitud-proponentes/{id}')
+  @response(204, {
+    description: 'SolicitudProponente DELETE success',
+  })
+  async deleteById(@param.path.number('id') id: number): Promise<void> {
+    await this.solicitudProponenteRepository.deleteById(id);
+  }
+
+  @post('/solicitud-proponente-trabajo', {
+    responses: {
+      '200': {
+        description: 'create a instance of solicitud with a proponente',
+        content: {'application/json': {schema: getModelSchemaRef(SolicitudProponente)}},
+      },
+    },
+  })
+  async crearRelacion(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: getModelSchemaRef(SolicitudProponente, {
+            title: 'NewSolicitudProponente',
             exclude: ['id'],
           }),
         },
       },
-    }) solicitud: Omit<Solicitud, 'id'>,
-  ): Promise<Solicitud> {
-    return this.proponenteTrabajoRepository.solicituds(id).create(solicitud);
+    }) datos: Omit<SolicitudProponente, 'id'>,
+  ): Promise<SolicitudProponente | null> {
+    let registro = await this.solicitudProponenteRepository.create(datos);
+    return registro;
   }
 
-  @patch('/proponente-trabajos/{id}/solicituds', {
+  @post('/asociar-solicitud-proponentes-trabajos/{id}', {
     responses: {
       '200': {
-        description: 'ProponenteTrabajo.Solicitud PATCH success count',
-        content: {'application/json': {schema: CountSchema}},
+        description: 'create a instance of solicitud with a proponentes',
+        content: {'application/json': {schema: getModelSchemaRef(ArregloGenerico)}},
       },
     },
   })
-  async patch(
-    @param.path.number('id') id: number,
+  async crearRelaciones(
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Solicitud, {partial: true}),
+          schema: getModelSchemaRef(ArregloGenerico, {}),
         },
       },
-    })
-    solicitud: Partial<Solicitud>,
-    @param.query.object('where', getWhereSchemaFor(Solicitud)) where?: Where<Solicitud>,
-  ): Promise<Count> {
-    return this.proponenteTrabajoRepository.solicituds(id).patch(solicitud, where);
+    }) datos: ArregloGenerico,
+    @param.path.string('id') solicitudId: typeof Solicitud.prototype.id
+  ): Promise<Boolean> {
+    if (datos.arregloGenerico.length > 0) {
+      datos.arregloGenerico.forEach(async (proponenteTrabajoId: number) => {
+        let existe = await this.solicitudProponenteRepository.findOne({
+          where: {
+            proponenteTrabajoId: proponenteTrabajoId,
+            solicitudId: solicitudId
+          }
+        })
+        if (!existe) {
+          this.solicitudProponenteRepository.create({
+            proponenteTrabajoId: proponenteTrabajoId,
+            solicitudId: solicitudId
+          });
+        }
+
+      });
+      return true;
+    }
+    return false;
   }
 
-  @del('/proponente-trabajos/{id}/solicituds', {
-    responses: {
-      '200': {
-        description: 'ProponenteTrabajo.Solicitud DELETE success count',
-        content: {'application/json': {schema: CountSchema}},
-      },
-    },
+  @del('/solicitid-proponente-trabajo/{id}')
+  @response(204, {
+    description: 'SolicitudProponenteTrabajo DELETE success',
   })
-  async delete(
-    @param.path.number('id') id: number,
-    @param.query.object('where', getWhereSchemaFor(Solicitud)) where?: Where<Solicitud>,
-  ): Promise<Count> {
-    return this.proponenteTrabajoRepository.solicituds(id).delete(where);
+  async EliminarRolUsuario(
+    @param.path.string('solicitudId') solicitudId: number,
+    @param.path.string('proponenteTrabajoId') proponenteTrabajoId: number): Promise<Boolean> {
+    let reg = await this.solicitudProponenteRepository.findOne({
+      where: {
+        proponenteTrabajoId: proponenteTrabajoId,
+        solicitudId: solicitudId
+      }
+    });
+    if (reg) {
+      await this.solicitudProponenteRepository.deleteById(reg.id);
+      return true
+    }
+    return false;
   }
 }

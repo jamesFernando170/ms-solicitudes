@@ -4,27 +4,25 @@ import {
   Filter,
   FilterExcludingWhere,
   repository,
-  Where,
+  Where
 } from '@loopback/repository';
 import {
-  post,
-  param,
-  get,
-  getModelSchemaRef,
-  patch,
-  put,
-  del,
-  requestBody,
-  response,
+  del, get,
+  getModelSchemaRef, param, patch, post, put, requestBody,
+  response
 } from '@loopback/rest';
 import {ProponenteTrabajo} from '../models';
 import {ProponenteTrabajoRepository} from '../repositories';
 
+/*
+Este controlador "Proponente-trabajo-Controller" donde podremos realizar operaciones CRUD, donde podremos agregar, actualizar, eliminar, etc, Proponente-trabajo
+*/
+
 export class ProponenteTrabajoController {
   constructor(
     @repository(ProponenteTrabajoRepository)
-    public proponenteTrabajoRepository : ProponenteTrabajoRepository,
-  ) {}
+    public proponenteTrabajoRepository: ProponenteTrabajoRepository,
+  ) { }
 
   @post('/proponente-trabajos')
   @response(200, {
@@ -44,6 +42,7 @@ export class ProponenteTrabajoController {
     })
     proponenteTrabajo: Omit<ProponenteTrabajo, 'id'>,
   ): Promise<ProponenteTrabajo> {
+
     return this.proponenteTrabajoRepository.create(proponenteTrabajo);
   }
 
