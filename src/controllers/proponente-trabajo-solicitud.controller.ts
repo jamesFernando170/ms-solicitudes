@@ -202,6 +202,22 @@ export class ProponenteTrabajoSolicitudController {
     return registro;
   }
 
+  /* solicitudProponente: Omit<SolicitudProponente, 'id'>,
+  ): Promise<SolicitudProponente> {
+
+    let solicitudCreada = await this.solicitudProponenteRepository.create(solicitudProponente);
+    const proponenteTrabajo = await this.proponenteTrabajoRepository.findById(solicitudProponente.proponenteTrabajoId);
+    const solicitud = await this.SolicitudRepository.findById(solicitudProponente.solicitudId);
+
+    if (solicitudCreada) {
+      let datos = new NotificacionCorreo();
+      datos.destinatario = proponenteTrabajo.correo;
+      datos.asunto = Keys.asuntoSolicitud;
+      datos.mensaje = `Hola ${proponenteTrabajo.primerNombre} ${proponenteTrabajo.segundoApellido} su solicitud fue registrada con exito:<br/> Nombre de trabajo: ${solicitud.nombreTrabajo}<br/>fecha de radicacion: ${solicitud.fecha}`;
+      this.servicioNotificaciones.EnviarCorreo(datos);
+    }
+    return solicitudCreada; */
+
   @post('/asociar-solicitud-proponentes-trabajos/{id}', {
     responses: {
       '200': {
@@ -219,6 +235,7 @@ export class ProponenteTrabajoSolicitudController {
       },
     }) datos: ArregloGenerico,
     @param.path.string('id') solicitudId: typeof Solicitud.prototype.id
+
   ): Promise<Boolean> {
     if (datos.arregloGenerico.length > 0) {
       datos.arregloGenerico.forEach(async (proponenteTrabajoId: number) => {
@@ -229,10 +246,20 @@ export class ProponenteTrabajoSolicitudController {
           }
         })
         if (!existe) {
-          this.solicitudProponenteRepository.create({
+          let solicitudCreada = await this.solicitudProponenteRepository.create({
             proponenteTrabajoId: proponenteTrabajoId,
             solicitudId: solicitudId
           });
+          const proponenteTrabajo = await this.proponenteTrabajoRepository.findById(proponenteTrabajoId);
+          const solicitud = await this.SolicitudRepository.findById(solicitudId);
+
+          if (solicitudCreada) {
+            let datos = new NotificacionCorreo();
+            datos.destinatario = proponenteTrabajo.correo;
+            datos.asunto = Keys.asuntoSolicitud;
+            datos.mensaje = `Hola ${proponenteTrabajo.primerNombre} ${proponenteTrabajo.segundoApellido} su solicitud fue registrada con exito:<br/> Nombre de trabajo: ${solicitud.nombreTrabajo}<br/>fecha de radicacion: ${solicitud.fecha}`;
+            this.servicioNotificaciones.EnviarCorreo(datos);
+          }
         }
 
       });

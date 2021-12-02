@@ -13,6 +13,8 @@ export class AdministratorStrategy implements AuthenticationStrategy {
 
   async authenticate(request: Request): Promise<UserProfile | undefined> {
     let token = parseBearerToken(request);
+    console.log(token);
+
     if (token) {
       let url = `${Keys.url_validar_token}?${Keys.arg_token}=${token}&${Keys.arg_rol_validar}=${Keys.rol_administrador}`;
       console.log(url)

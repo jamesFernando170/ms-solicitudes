@@ -1,6 +1,7 @@
 import { /* inject, */ BindingScope, injectable} from '@loopback/core';
 import {Keys} from '../config/Keys';
 import {NotificacionCorreo} from '../models/notificacion-correo.model';
+const fetch = require('node-fetch')
 
 @injectable({scope: BindingScope.TRANSIENT})
 export class NotificacionesService {

@@ -36,3 +36,5 @@ export * from './solicitud.controller';
 export * from './tipo-solicitud.controller';
 export * from './tipo-vinculacion.controller';
 export * from './tipos-comite.controller';
+export * from './carga-archivos.controller';
+export * from './descarga-archivos.controller';

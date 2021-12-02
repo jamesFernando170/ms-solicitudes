@@ -19,7 +19,7 @@ import {SolicitudRepository} from '../repositories';
 Este controlador "SolicitudController" donde podremos realizar operaciones CRUD
 */
 
-@authenticate('admin')
+/* @authenticate('admin') */
 export class SolicitudController {
   constructor(
     @repository(SolicitudRepository)

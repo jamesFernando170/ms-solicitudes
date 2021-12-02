@@ -11,7 +11,8 @@ import {
   getModelSchemaRef, param, patch, post, put, requestBody,
   response
 } from '@loopback/rest';
-import {SolicitudComite} from '../models';
+import {Solicitud, SolicitudComite} from '../models';
+import {ArregloGenerico} from '../models/arreglo-generico.model';
 import {SolicitudComiteRepository} from '../repositories';
 
 /*
@@ -145,5 +146,44 @@ export class SolicitudTiposComiteController {
   })
   async deleteById(@param.path.number('id') id: number): Promise<void> {
     await this.solicitudComiteRepository.deleteById(id);
+  }
+
+  @post('/asociar-solicitud-comites/{id}', {
+    responses: {
+      '200': {
+        description: 'create a instance of Rol with a usuario',
+        content: {'application/json': {schema: getModelSchemaRef(SolicitudComite)}},
+      },
+    },
+  })
+  async crearRelaciones(
+    @requestBody({
+      content: {
+        'application/json': {
+          schema: getModelSchemaRef(ArregloGenerico, {}),
+        },
+      },
+    }) datos: ArregloGenerico,
+    @param.path.string('id') solicitudId: typeof Solicitud.prototype.id
+  ): Promise<Boolean> {
+    if (datos.arregloGenerico.length > 0) {
+      datos.arregloGenerico.forEach(async (tiposComiteId: number) => {
+        let existe = await this.solicitudComiteRepository.findOne({
+          where: {
+            tiposComiteId: tiposComiteId,
+            solicitudId: solicitudId
+          }
+        })
+        if (!existe) {
+          this.solicitudComiteRepository.create({
+            tiposComiteId: tiposComiteId,
+            solicitudId: solicitudId
+          });
+        }
+
+      });
+      return true;
+    }
+    return false;
   }
 }
