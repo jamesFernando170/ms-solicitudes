@@ -1,10 +1,11 @@
-import {Entity, model, property, hasMany} from '@loopback/repository';
-import {InvitacionEvaluar} from './invitacion-evaluar.model';
+import {Entity, hasMany, model, property} from '@loopback/repository';
 import {AreaInvestigacion} from './area-investigacion.model';
+import {InvitacionEvaluar} from './invitacion-evaluar.model';
 import {JuradoAreaInvestigacion} from './jurado-area-investigacion.model';
 import {Solicitud} from './solicitud.model';
 
 @model()
+// documentoo, apellidos, fechaNaciento
 export class Jurado extends Entity {
   @property({
     type: 'number',
@@ -18,6 +19,12 @@ export class Jurado extends Entity {
     required: true,
   })
   nombre: string;
+
+  @property({
+    type: 'string',
+    required: true,
+  })
+  apellidos: string;
 
   @property({
     type: 'string',
@@ -41,6 +48,17 @@ export class Jurado extends Entity {
     type: 'string'
   })
   clave?: string;
+
+  @property({
+    type: 'string'
+  })
+  documento?: string;
+
+  @property({
+    type: 'date',
+    required: true,
+  })
+  fecha_nacimiento: string;
 
   @hasMany(() => InvitacionEvaluar, {keyTo: 'idJurado'})
   invitacionEvaluars: InvitacionEvaluar[];

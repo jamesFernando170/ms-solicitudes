@@ -52,6 +52,12 @@ export class InvitacionEvaluar extends Entity {
   })
   estadoInvitacion: string;
 
+  @property({
+    type: 'string',
+    required: false,
+  })
+  hash?: string;
+
   @hasMany(() => Recordatorio, {keyTo: 'idInvitacionEvaluar'})
   recordatorios: Recordatorio[];
 

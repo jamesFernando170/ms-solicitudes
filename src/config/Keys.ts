@@ -9,6 +9,7 @@ export namespace Keys {
   export const arg_token = "token";
   export const arg_id_validar = "id";
   export const asuntoSolicitud = "Su solicitud fue registrada exitosamente"
+  export const asuntoSolicitud2 = "Invitacion evaluar solicitud"
   export const urlCorreo = "http://localhost:5000/correo"
   export const hashNotificacion = "ABC123"
   export const asuntoInvitacionEvaluar = "Invitacion a evaluar una solicitud";

@@ -16,3 +16,6 @@ export * from './tipos-comite.model';
 export * from './solicitud-comite.model';
 export * from './modalidad.model';
 export * from './solicitud-proponente.model';
+export * from './credenciales-invitacion-evaluar.model';
+export * from './arreglo-generico2.model';
+export * from './credentials.model';
